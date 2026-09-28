@@ -32,6 +32,11 @@ input:focus{outline:2px solid var(--ember2);outline-offset:1px}
 .go{width:100%;height:52px;margin-top:22px;border:0;border-radius:26px;background:linear-gradient(90deg,var(--ember),var(--ember2));color:#1a0d07;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
 .go:disabled{opacity:.6}
 .alt{width:100%;margin-top:10px;height:46px;border-radius:23px;border:1px solid var(--line);background:none;color:var(--text);font:inherit;font-size:15px;cursor:pointer}
+.google{width:100%;height:54px;border:0;border-radius:27px;background:#fff;color:#1f1f1f;font:inherit;font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer}
+.google svg{width:20px;height:20px}
+.google:disabled{opacity:.6}
+.or{display:flex;align-items:center;gap:12px;margin:22px 0 4px;color:var(--mute);font-size:13px}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 #msg{min-height:22px;margin-top:14px;font-size:14px;color:var(--ember2)}
 </style>
 </head>
@@ -40,6 +45,8 @@ input:focus{outline:2px solid var(--ember2);outline-offset:1px}
   <div class="sun" aria-hidden="true"></div>
   <h1>Trips</h1>
   <p>Log in to see your trip. Only the two of you can.</p>
+  <button class="google" id="google" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Continue with Google</button>
+  <div class="or">or use email</div>
   <form id="form">
     <label for="email">Email</label><input id="email" type="email" autocomplete="email" required>
     <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" minlength="8" required>
@@ -57,7 +64,12 @@ input:focus{outline:2px solid var(--ember2);outline-offset:1px}
   if(q.get('why')==='member')say('This email is not on the trip list yet. Ask the trip owner to add it.');
   const db=await Store.client();
   const {data:{session}}=await db.auth.getSession(); if(session&&!q.get('why')){location.replace(next);return;}
-  const busy=on=>{$('go').disabled=on;$('make').disabled=on;};
+  const busy=on=>{$('go').disabled=on;$('make').disabled=on;$('google').disabled=on;};
+  $('google').onclick=async()=>{ // Google sends you back here, then we forward to the page you wanted
+    busy(true); say('');
+    const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:new URL('login.html?next='+encodeURIComponent(next),location.href).href}});
+    if(error){busy(false);say(error.message);}
+  };
   $('form').addEventListener('submit',async e=>{
     e.preventDefault(); busy(true); say('');
     const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('pw').value});
