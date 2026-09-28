@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e0c0b">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Trips">
+<script src="config.js"></script>
+<script src="store.js"></script>
+<title>Log in · Trips</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0e0c0b;--line:rgba(246,236,220,.12);--text:#f6ecdc;--mute:rgba(246,236,220,.58);--ember:#ff5a2c;--ember2:#ff9a3d;
+  --disp:"Big Shoulders Display",Impact,sans-serif;--body:"Geist",ui-sans-serif,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--ink);color:var(--text);font-family:var(--body);padding:24px 16px}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(50vmax 50vmax at 100% 0%,rgba(255,90,44,.18),transparent 60%),radial-gradient(40vmax 40vmax at 0% 100%,rgba(52,214,196,.07),transparent 60%)}
+main{width:min(400px,100%)}
+.sun{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ffd28a,var(--ember));box-shadow:0 0 50px rgba(255,90,44,.5);margin-bottom:18px}
+h1{font-family:var(--disp);font-weight:900;font-size:60px;line-height:.85;margin:0 0 8px;text-transform:uppercase}
+p{color:var(--mute);margin:0 0 22px;line-height:1.45}
+label{display:block;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:14px 0 6px}
+input{width:100%;height:50px;border-radius:14px;border:1px solid var(--line);background:rgba(246,236,220,.05);color:var(--text);padding:0 14px;font:inherit;font-size:16px}
+input:focus{outline:2px solid var(--ember2);outline-offset:1px}
+.go{width:100%;height:52px;margin-top:22px;border:0;border-radius:26px;background:linear-gradient(90deg,var(--ember),var(--ember2));color:#1a0d07;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+.go:disabled{opacity:.6}
+.alt{width:100%;margin-top:10px;height:46px;border-radius:23px;border:1px solid var(--line);background:none;color:var(--text);font:inherit;font-size:15px;cursor:pointer}
+#msg{min-height:22px;margin-top:14px;font-size:14px;color:var(--ember2)}
+</style>
+</head>
+<body>
+<main>
+  <div class="sun" aria-hidden="true"></div>
+  <h1>Trips</h1>
+  <p>Log in to see your trip. Only the two of you can.</p>
+  <form id="form">
+    <label for="email">Email</label><input id="email" type="email" autocomplete="email" required>
+    <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" minlength="8" required>
+    <button class="go" id="go">Log in</button>
+    <button class="alt" type="button" id="make">Create my login</button>
+  </form>
+  <div id="msg" role="status"></div>
+</main>
+<script>
+(async()=>{
+  const q=new URLSearchParams(location.search);
+  const next=/^[a-z]+\.html(\?[\w=&%-]*)?$/.test(q.get('next')||'')?q.get('next'):'index.html'; // only our own pages
+  if(!Store.online){location.replace(next);return;} // local mode: nothing to log in to
+  const $=id=>document.getElementById(id), say=t=>$('msg').textContent=t;
+  if(q.get('why')==='member')say('This email is not on the trip list yet. Ask the trip owner to add it.');
+  const db=await Store.client();
+  const {data:{session}}=await db.auth.getSession(); if(session&&!q.get('why')){location.replace(next);return;}
+  const busy=on=>{$('go').disabled=on;$('make').disabled=on;};
+  $('form').addEventListener('submit',async e=>{
+    e.preventDefault(); busy(true); say('');
+    const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('pw').value});
+    busy(false); if(error){say(error.message);return;} location.replace(next);
+  });
+  $('make').onclick=async()=>{
+    if(!$('form').reportValidity())return; busy(true); say('');
+    const {data,error}=await db.auth.signUp({email:$('email').value.trim(),password:$('pw').value,options:{emailRedirectTo:new URL('index.html',location.href).href}});
+    busy(false); if(error){say(error.message);return;}
+    if(data.session)location.replace(next); else say('Check your email and tap the link. Then come back and log in.');
+  };
+})();
+</script>
+</body>
+</html>

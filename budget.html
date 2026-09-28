@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e0c0b">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Trips">
+<script src="config.js"></script>
+<script src="store.js"></script>
+<title>Budget</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --ink:#1d1d1f; --mute:#86868b; --line:rgba(0,0,0,.08);
+    --blue:#0071e3; --green:#34c759; --orange:#ff9f0a; --tint:#f0f6ff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Inter,system-ui,sans-serif;padding:0 16px 60px;font-size:17px;line-height:1.35;}
+  .wrap{max-width:640px;margin:0 auto;}
+
+  .toplinks{display:flex;justify-content:flex-end;gap:8px;padding-top:14px}
+  .toplinks a{font-size:14px;font-weight:600;color:var(--blue);text-decoration:none;background:#fff;padding:7px 14px;border-radius:20px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .hero{padding-top:18px!important}
+  /* hero */
+  .hero{padding:40px 4px 8px;text-align:center;}
+  .hero .eyebrow{font-size:13px;color:var(--mute);letter-spacing:.01em;}
+  .hero h1{margin:2px 0 0;font-size:34px;font-weight:700;letter-spacing:-.02em;}
+  .hero .big{margin:22px 0 0;font-size:56px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;}
+  .hero .sub{margin-top:8px;font-size:15px;color:var(--mute);}
+  .hero .sub b{color:var(--ink);font-weight:600;}
+  .bar{height:4px;background:rgba(0,0,0,.08);border-radius:4px;margin:18px auto 0;max-width:280px;overflow:hidden;}
+  .bar i{display:block;height:100%;width:0;background:var(--green);transition:width .4s;}
+
+  /* segmented */
+  .tabs{display:flex;margin:24px 0 20px;background:rgba(0,0,0,.06);padding:3px;border-radius:12px;}
+  .tabs button{flex:1;border:0;background:transparent;padding:9px 4px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);border-radius:10px;cursor:pointer;transition:.15s;}
+  .tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+  .page{display:none;}.page.active{display:block;}
+
+  /* section + list */
+  .sec{font-size:13px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin:26px 16px 8px;display:flex;justify-content:space-between;align-items:baseline;}
+  .sec:first-child{margin-top:0;}
+  .sec .sum{font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600;}
+  .sec .sub{display:block;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;margin-top:2px;}
+  .list{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 16px;min-height:52px;}
+  .row+.row,.row+.add,.add+.row{border-top:1px solid var(--line);}
+  .row .main{flex:1;min-width:0;}
+  .row .lbl{font-size:17px;}
+  .row .lbl.has{cursor:pointer;}
+  .row .lbl.has::after{content:" ⓘ";color:var(--mute);font-size:13px;}
+  .row .note{display:none;color:var(--mute);font-size:14px;margin-top:3px;line-height:1.4;}
+  .row.open .note{display:block;}
+  .row.paid .lbl{color:var(--mute);text-decoration:line-through;}
+
+  .chk{width:24px;height:24px;border:1.5px solid rgba(0,0,0,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;}
+  .chk.on{background:var(--green);border-color:var(--green);}
+  .chk svg{width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;}
+  .chk.on svg{opacity:1;}
+
+  .amt{display:flex;align-items:center;gap:2px;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .amt::before{content:"$";color:var(--mute);}
+  .amt input{width:72px;font:inherit;font-size:17px;text-align:right;border:0;background:transparent;color:var(--ink);padding:4px 0;font-variant-numeric:tabular-nums;}
+  .amt input:focus{outline:0;border-bottom:2px solid var(--blue);}
+  input[type=text]{width:100%;font:inherit;font-size:17px;border:0;background:transparent;padding:4px 0;color:var(--ink);}
+  input[type=text]:focus{outline:0;border-bottom:2px solid var(--blue);}
+  input[type=text]::placeholder{color:var(--mute);}
+  select{font:inherit;font-size:15px;font-weight:600;padding:6px 26px 6px 12px;border:0;border-radius:20px;background:rgba(0,0,0,.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2386868b' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--ink);-webkit-appearance:none;appearance:none;flex:none;}
+  select.set{background-color:var(--tint);color:var(--blue);}
+  .x{border:0;background:transparent;color:rgba(0,0,0,.25);font-size:20px;cursor:pointer;padding:0 0 0 4px;line-height:1;flex:none;}
+  .add{display:block;width:100%;border:0;background:transparent;color:var(--blue);font:inherit;font-size:15px;font-weight:500;padding:13px 16px;text-align:left;cursor:pointer;}
+  .new{display:flex;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid var(--line);}
+  .new input[type=text]{flex:1;}
+  .new .amt input{width:60px;}
+  .new button{font:inherit;font-size:15px;font-weight:600;color:#fff;background:var(--blue);border:0;border-radius:20px;padding:7px 16px;cursor:pointer;}
+  .empty{padding:14px 16px;color:var(--mute);font-size:15px;}
+  .hint{font-size:13px;color:var(--mute);margin:10px 16px 0;line-height:1.45;}
+
+  /* steps */
+  .step{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;cursor:pointer;}
+  .step+.step{border-top:1px solid var(--line);}
+  .step .n{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(0,0,0,.25);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px;color:var(--mute);}
+  .step.now .n{border-color:var(--blue);background:var(--blue);color:#fff;}
+  .step.done .n{border-color:var(--green);background:var(--green);color:#fff;}
+  .step .main{flex:1;}
+  .step .t{font-size:17px;font-weight:500;}
+  .step.done .t{color:var(--mute);text-decoration:line-through;}
+  .step .d{font-size:14px;color:var(--mute);margin-top:3px;line-height:1.4;display:none;}
+  .step.now .d,.step.open .d{display:block;}
+  .step .a{font-variant-numeric:tabular-nums;color:var(--mute);font-size:15px;padding-top:2px;}
+
+  .next{display:block;width:100%;margin:26px 0 0;padding:15px;border:0;border-radius:14px;background:var(--blue);color:#fff;font:inherit;font-size:17px;font-weight:600;cursor:pointer;}
+  .foot{display:flex;gap:18px;justify-content:center;margin-top:28px;}
+  .foot button{font:inherit;font-size:14px;color:var(--blue);background:transparent;border:0;cursor:pointer;padding:6px;}
+  #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(90px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;transition:.3s;}
+  #toast.show{transform:translateX(-50%);}
+  @media print{.tabs,.foot,.add,.new,.next,#toast{display:none!important}.page{display:block!important}.row .note,.step .d{display:block!important}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="toplinks"><a href="index.html" style="margin-right:auto">‹ Trips</a><a href="outfits.html">Outfits</a><a href="packing.html">Packing</a><a href="closet.html">Closet</a></nav>
+  <header class="hero">
+    <div class="eyebrow" id="tripLong"></div>
+    <h1 id="tripName"></h1>
+    <div class="big" id="total">$0</div>
+    <div class="sub" id="sub"></div>
+    <div class="bar"><i id="bar"></i></div>
+  </header>
+
+  <div class="tabs">
+    <button class="active" data-tab="ideas">1 · Ideas</button>
+    <button data-tab="budget">2 · Budget</button>
+    <button data-tab="book">3 · Book</button>
+  </div>
+
+  <div class="page active" id="page-ideas">
+    <div id="ideas"></div>
+    <div class="hint">Give each idea a day. "Not yet" keeps it out of the total. Tap ⓘ for details, × to drop.</div>
+    <button class="next" data-go="budget">Next · Budget</button>
+  </div>
+
+  <div class="page" id="page-budget">
+    <div id="groups"></div>
+    <div class="hint">Numbers are for both of you. Change any of them. Tap the circle when it is paid.</div>
+    <button class="next" data-go="book">Next · Book</button>
+  </div>
+
+  <div class="page" id="page-book">
+    <div class="sec">In this order</div>
+    <div class="list" id="steps"></div>
+    <div class="hint">Tap a step when it is done. It marks the budget line paid too.</div>
+  </div>
+
+  <div class="foot">
+    <button onclick="copySummary()">Copy summary</button>
+    <button onclick="window.print()">Print</button>
+    <button onclick="resetAll()">Reset</button>
+  </div>
+</div>
+<div id="toast">Copied</div>
+
+<script>
+Store.ready().then(()=>{
+const TRIPC=Store.get('cfg:trip',{});
+[['tripTag','tag'],['tripName','name'],['tripSub','sub'],['tripWm','wm'],['tripShort','short'],['tripLong','longTag']].forEach(([id,f])=>{const e=document.getElementById(id);if(e)e.textContent=TRIPC[f]||'';});
+/* ---------- DAYS ---------- */
+const DAYS=Store.get('cfg:budget-days',[]);
+
+/* ---------- ITEMS (amounts for both of you). fixed = money line, not an idea. ---------- */
+const ITEMS=Store.get('cfg:budget-items',[]);
+
+/* Book in this order. k links to a budget line so paying one marks the other. */
+const STEPS=Store.get('cfg:steps',[]);
+
+/* ---------- STATE ---------- */
+const KEY=Store.key('budget');
+let S={amt:{},paid:{},day:{},del:{},extra:[]};
+try{S=Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const $=s=>document.querySelector(s);
+const money=n=>'$'+Math.round(n).toLocaleString();
+const CHK='<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>';
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const ex=id=>S.extra.find(e=>e.id===id);
+
+function all(){
+  const b=ITEMS.filter(it=>!S.del[it.id]).map(it=>({...it,a:S.amt[it.id]!==undefined?+S.amt[it.id]:it.a,d:S.day[it.id]||it.d,p:!!S.paid[it.id]}));
+  return b.concat(S.extra.map(e=>({...e,a:+e.a||0,p:!!e.p,x:1})));
+}
+const byId=id=>all().find(i=>i.id===id);
+const counted=i=>i.d!=='any';
+
+/* ---------- RENDER ---------- */
+const daySel=(id,cur)=>`<select data-day="${id}" class="${cur!=='any'?'set':''}">${DAYS.filter(d=>d.short).map(d=>`<option value="${d.id}" ${d.id===cur?'selected':''}>${d.short}</option>`).join('')}</select>`;
+const label=i=>i.x?`<input type="text" value="${esc(i.l)}" placeholder="Name" data-xl="${i.id}">`:`<div class="lbl ${i.n?'has':''}" data-open>${esc(i.l)}</div>`;
+const note=i=>i.n?`<div class="note">${i.n}</div>`:'';
+
+function render(){
+  const L=all();
+  // IDEAS
+  const ideas=L.filter(i=>!i.fixed), order=i=>DAYS.findIndex(d=>d.id===i.d);
+  const onDay=ideas.filter(i=>i.d!=='any').sort((a,b)=>order(a)-order(b)), notYet=ideas.filter(i=>i.d==='any');
+  const ideaRow=i=>`<div class="row" data-row="${i.id}"><div class="main">${label(i)}${note(i)}${i.a?`<div class="note" style="display:block">${money(i.a)}</div>`:''}</div>${daySel(i.id,i.d)}<button class="x" data-del="${i.id}" aria-label="Drop">×</button></div>`;
+  $('#ideas').innerHTML=`<div class="sec">On the calendar<span class="sum">${onDay.length}</span></div><div class="list">${onDay.map(ideaRow).join('')||'<div class="empty">Nothing yet.</div>'}</div>
+    <div class="sec">Not yet<span class="sum">${notYet.length}</span></div><div class="list">${notYet.map(ideaRow).join('')}
+    <div class="new"><input type="text" id="newl" placeholder="New idea"><span class="amt"><input type="number" id="newa" placeholder="0" inputmode="numeric"></span><button data-newidea>Add</button></div></div>`;
+
+  // BUDGET
+  $('#groups').innerHTML=DAYS.map(g=>{
+    const its=L.filter(i=>i.d===g.id); if(g.id==='any')return '';
+    const rows=its.map(i=>`<div class="row ${i.p?'paid':''}" data-row="${i.id}"><div class="chk ${i.p?'on':''}" data-pay="${i.id}">${CHK}</div>
+      <div class="main">${label(i)}${note(i)}</div><span class="amt"><input type="number" inputmode="numeric" min="0" step="10" value="${i.a}" data-amt="${i.id}"></span></div>`).join('');
+    const sum=its.reduce((a,i)=>a+i.a,0);
+    const sub=g.s||its.filter(i=>!i.fixed).map(i=>i.l).join(' · ');
+    return `<div class="sec"><span>${g.t}${sub?`<span class="sub">${esc(sub)}</span>`:''}</span><span class="sum">${money(sum)}</span></div>
+      <div class="list">${rows||'<div class="empty">Free day</div>'}<button class="add" data-add="${g.id}">Add line</button></div>`;
+  }).join('');
+
+  // STEPS
+  let nextFound=false;
+  $('#steps').innerHTML=STEPS.map((st,i)=>{
+    const key=st.k||st.id, it=st.k?byId(st.k):null, done=!!S.paid[key];
+    const now=!done&&!nextFound; if(now)nextFound=true;
+    const when=it&&it.d!=='any'&&it.d!=='pre'?' · '+DAYS.find(d=>d.id===it.d).short:'';
+    return `<div class="step ${done?'done':''} ${now?'now':''}" data-pay="${key}"><div class="n">${done?'✓':i+1}</div>
+      <div class="main"><div class="t">${st.t}${when}</div><div class="d">${st.d}</div></div><div class="a">${it?money(it.a):''}</div></div>`;
+  }).join('');
+  totals();
+}
+function totals(){
+  const L=all().filter(counted), total=L.reduce((a,i)=>a+i.a,0), paid=L.filter(i=>i.p).reduce((a,i)=>a+i.a,0);
+  const pre=L.filter(i=>i.d==='pre').reduce((a,i)=>a+i.a,0);
+  $('#total').textContent=money(total);
+  $('#sub').innerHTML=`<b>${money(total/2)}</b> each · <b>${money(pre)}</b> to book now · <b>${money(total-pre)}</b> to spend there · paid <b>${money(paid)}</b>`;
+  $('#bar').style.width=(total?paid/total*100:0)+'%';
+}
+
+/* ---------- EVENTS ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-pay],[data-add],[data-del],[data-newidea],[data-open],[data-tab],[data-go]'); if(!t)return;
+  if(t.dataset.tab||t.dataset.go){tab(t.dataset.tab||t.dataset.go);return;}
+  if(t.hasAttribute('data-open')){t.closest('.row').classList.toggle('open');return;}
+  if(t.dataset.pay){const id=t.dataset.pay,x=ex(id); if(x)x.p=!x.p; else S.paid[id]=!S.paid[id];}
+  else if(t.dataset.add){S.extra.push({id:'x'+Date.now(),l:'',a:0,d:t.dataset.add,p:false});}
+  else if(t.dataset.del){const id=t.dataset.del; if(ex(id))S.extra=S.extra.filter(e=>e.id!==id); else S.del[id]=1;}
+  else if(t.hasAttribute('data-newidea')){const l=$('#newl').value.trim(); if(!l)return; S.extra.push({id:'x'+Date.now(),l,a:+$('#newa').value||0,d:'any',p:false});}
+  save();render();
+  if(t.dataset.add){const inp=document.querySelector(`[data-xl="${S.extra.at(-1).id}"]`);inp&&inp.focus();}
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.amt){const x=ex(t.dataset.amt);if(x)x.a=+t.value||0;else S.amt[t.dataset.amt]=+t.value||0;save();totals();} // ponytail: no re-render so the input keeps focus
+  if(t.dataset.xl){const x=ex(t.dataset.xl);if(x)x.l=t.value;save();}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.day){const x=ex(t.dataset.day);if(x)x.d=t.value;else S.day[t.dataset.day]=t.value;save();render();}
+  else if(t.dataset.amt||t.dataset.xl)render();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&/^new[la]$/.test(e.target.id))document.querySelector('[data-newidea]').click();});
+
+function tab(n){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+n));
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));window.scrollTo({top:0,behavior:'smooth'});}
+function resetAll(){if(confirm('Reset all numbers, days and paid marks?')){S={amt:{},paid:{},day:{},del:{},extra:[]};save();render();}}
+function copySummary(){
+  const L=all();
+  const lines=DAYS.map(g=>{const its=L.filter(i=>i.d===g.id); if(!its.length)return null;
+    return `${g.t}${g.id==='any'?' (not counted)':''}\n`+its.map(i=>`  ${i.p?'✅':'⬜'} ${i.l||'Item'}: ${money(i.a)}`).join('\n');}).filter(Boolean);
+  const sp=L.filter(counted),total=sp.reduce((a,i)=>a+i.a,0),paid=sp.filter(i=>i.p).reduce((a,i)=>a+i.a,0);
+  navigator.clipboard.writeText(`${TRIPC.summary||TRIPC.name||'Trip'}\nTOTAL ${money(total)} · paid ${money(paid)} · left ${money(total-paid)} · ${money(total/2)} each\n\n${lines.join('\n\n')}`)
+    .then(()=>{$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),1400);});
+}
+render();
+
+window.copySummary=copySummary; window.resetAll=resetAll; // used by the buttons
+document.title=`${TRIPC.name||'Trip'} · Budget`;
+});
+</script>
+</body>
+</html>

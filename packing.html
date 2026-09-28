@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e0c0b">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Trips">
+<script src="config.js"></script>
+<script src="store.js"></script>
+<title>Suitcase</title>
+<style>
+  :root{
+    --bg:#f2f2f7; --card:#fff; --ink:#1d1d1f; --mute:#8a8a8e; --line:rgba(60,60,67,.14);
+    --blue:#0a84ff; --green:#7fe07f; --green-d:#34c759; --red:#ff3b30;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;font-size:17px;padding-bottom:70px}
+  button,input{font:inherit;color:inherit}
+  .wrap{max-width:640px;margin:0 auto;padding:0 16px}
+
+  /* sticky header, like the iOS list */
+  .head{position:sticky;top:0;z-index:5;background:rgba(242,242,247,.86);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px);padding:10px 0 14px;margin:0 -16px;padding-left:16px;padding-right:16px}
+  .nav{display:flex;align-items:center;gap:16px;height:36px}
+  .nav a,.nav button{color:var(--blue);text-decoration:none;background:none;border:0;padding:0;cursor:pointer;font-size:17px}
+  .nav .back{margin-right:auto;display:flex;align-items:center;gap:4px}
+  .nav .back::before{content:"";width:10px;height:10px;border-left:2.5px solid var(--blue);border-bottom:2.5px solid var(--blue);transform:rotate(45deg);margin:0 2px 0 4px}
+  h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:8px 0 2px}
+  .sub{font-size:14px;color:var(--mute)}
+  .seg{display:flex;background:rgba(118,118,128,.12);padding:2px;border-radius:9px;margin:12px 0 14px}
+  .seg button{flex:1;border:0;background:none;padding:7px 4px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+  .seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+  .pct{text-align:center;font-size:17px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .pct b{color:var(--ink);font-weight:600}
+  .bar{height:8px;border-radius:8px;background:rgba(118,118,128,.18);margin-top:8px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--green);border-radius:8px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .bar.full i{background:var(--green-d)}
+
+  /* groups */
+  .sec{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;margin:22px 16px 7px}
+  .list{background:var(--card);border-radius:14px;overflow:hidden}
+  .row{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 16px;cursor:pointer;user-select:none;position:relative}
+  .row+.row::before,.addrow::before{content:"";position:absolute;left:16px;right:0;top:0;border-top:1px solid var(--line)}
+  .row .n{flex:1;font-size:17px;line-height:1.25}
+  .row.done .n{color:var(--mute)}
+  .dot{width:48px;height:48px;border-radius:50%;border:2px solid #a9a9ae;display:grid;place-items:center;font-size:14px;font-variant-numeric:tabular-nums;flex:none;transition:background .25s,border-color .25s}
+  .row.part .dot{border-color:var(--green-d);background:linear-gradient(to top,var(--green) var(--f),transparent var(--f))}
+  .row.done .dot{background:var(--green);border-color:#8f8f94}
+  .dot.pop{animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{40%{transform:scale(1.18)}}
+  .del{display:none;width:24px;height:24px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:18px;line-height:1;cursor:pointer;flex:none;padding:0}
+  body.editing .del{display:grid;place-items:center}
+  body.editing .row{cursor:default}
+  .addrow{position:relative;display:flex;gap:10px;align-items:center;padding:12px 16px}
+  .addrow input{flex:1;border:0;background:none;font-size:17px;padding:6px 0;outline:none}
+  .addrow input::placeholder{color:var(--blue)}
+  .addrow input:focus::placeholder{color:var(--mute)}
+  .nav .plus{font-size:32px;line-height:1;font-weight:300;margin-top:-4px}
+  .stepper{display:flex;align-items:center;border-radius:9px;background:rgba(118,118,128,.12);flex:none}
+  .stepper button{width:40px;height:34px;border:0;background:none;font-size:20px;color:var(--ink);cursor:pointer;padding:0}
+  .stepper button:active{background:rgba(118,118,128,.2);border-radius:9px}
+  .stepper span{min-width:28px;text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+  .stepper.big button{width:48px;height:40px}
+  .nm{flex:1;min-width:0;border:0;background:none;font-size:17px;padding:6px 0;outline:none;border-bottom:1px solid transparent}
+  .nm:focus{border-bottom-color:var(--blue)}
+  dialog{border:0;border-radius:16px;padding:0 0 4px;width:min(420px,calc(100vw - 24px));background:#f2f2f7;color:var(--ink)}
+  dialog::backdrop{background:rgba(0,0,0,.35)}
+  dialog[open]{animation:up .35s cubic-bezier(.2,1.1,.3,1)}
+  @keyframes up{from{transform:translateY(40px);opacity:0}}
+  .shead{display:flex;justify-content:space-between;align-items:center;padding:14px 16px}
+  .shead b{font-size:17px}
+  .shead button{background:none;border:0;color:var(--blue);font-size:17px;cursor:pointer;padding:0}
+  .shead #sadd{font-weight:600}
+  #sname{display:block;width:calc(100% - 32px);margin:0 16px;height:48px;border:0;border-radius:12px;background:#fff;padding:0 14px;font-size:17px;outline:none}
+  .srow{display:flex;justify-content:space-between;align-items:center;margin:12px 16px;padding:10px 14px;background:#fff;border-radius:12px}
+  .srow.col{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips button{border:0;border-radius:16px;padding:7px 12px;background:rgba(118,118,128,.12);font-size:14px;font-weight:600;cursor:pointer}
+  .chips button.on{background:var(--blue);color:#fff}
+  .hint{font-size:13px;color:var(--mute);margin:10px 16px 0;line-height:1.45}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,90px);background:#1d1d1f;color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;transition:transform .45s cubic-bezier(.2,1.3,.4,1);z-index:10;white-space:nowrap}
+  #toast.show{transform:translate(-50%,0)}
+  #toast button{background:none;border:0;color:#6cb7ff;font-weight:600;cursor:pointer;margin-left:8px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="nav"><a class="back" href="outfits.html" id="tripName"></a><button id="uncheck">Uncheck All</button><button id="edit">Edit</button><button id="plus" class="plus" aria-label="Add item">+</button></div>
+    <h1 id="title">Suitcase</h1>
+    <div class="sub" id="tripShort"></div>
+    <div class="seg" id="seg"></div>
+    <div class="pct" id="pct"></div>
+    <div class="bar" id="bar"><i></i></div>
+  </div>
+  <div id="groups"></div>
+  <div class="hint">Tap an item when it's in the bag. Tap <b>Edit</b> to rename, change how many, or delete. Tap <b>+</b> to add.</div>
+</div>
+<dialog id="sheet"><form id="addform" method="dialog">
+  <div class="shead"><button type="button" id="scancel">Cancel</button><b>New item</b><button id="sadd" value="add">Add</button></div>
+  <input id="sname" placeholder="Item name" maxlength="50" required autocomplete="off" aria-label="Item name">
+  <div class="srow"><span>How many</span><div class="stepper big"><button type="button" data-sq="-1" aria-label="One less">−</button><span id="sq">1</span><button type="button" data-sq="1" aria-label="One more">+</button></div></div>
+  <div class="srow col"><span>Group</span><div class="chips" id="sgroups"></div></div>
+</form></dialog>
+<div id="toast"></div>
+
+<script>
+Store.ready().then(()=>{
+const TRIPC=Store.get('cfg:trip',{});
+[['tripTag','tag'],['tripName','name'],['tripSub','sub'],['tripWm','wm'],['tripShort','short'],['tripLong','longTag']].forEach(([id,f])=>{const e=document.getElementById(id);if(e)e.textContent=TRIPC[f]||'';});
+/* ---------- starting list (from the seed) ---------- */
+const START=Store.get('cfg:packing-start',{});
+const GROUPS=Object.keys(START);
+const fresh=()=>GROUPS.flatMap(g=>START[g].map((n,i)=>({id:`${g}-${i}`,g,n,q:1,p:0}))); // id = group + position, unique across groups
+
+/* ---------- profiles: same switch as the outfit pages ---------- */
+const PROFILES=Store.get('cfg:profiles',[['me','Me']]), OWNER=PROFILES[0][0];
+let who=(()=>{try{const v=localStorage.getItem('app:profile');return PROFILES.some(p=>p[0]===v)?v:OWNER;}catch(e){return OWNER;}})();
+const key=()=>Store.key(`pack:${who}`);
+let items=[];
+function load(){try{items=JSON.parse(localStorage.getItem(key()))||fresh();}catch(e){items=fresh();}}
+const save=()=>{try{localStorage.setItem(key(),JSON.stringify(items));}catch(e){}};
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function render(){
+  const name=PROFILES.find(p=>p[0]===who)[1];
+  $('title').textContent=`${name}'s suitcase`;
+  $('seg').innerHTML=PROFILES.map(([id,n])=>`<button data-who="${id}" class="${id===who?'on':''}" aria-pressed="${id===who}">${n}</button>`).join('');
+  $('groups').innerHTML=GROUPS.map(g=>{
+    const its=items.filter(i=>i.g===g), done=its.filter(i=>i.p>=i.q).length;
+    return `<div class="sec"><span>${g}</span><span>${done}/${its.length}</span></div><div class="list">
+      ${its.map(i=>{const st=i.p>=i.q?'done':i.p>0?'part':'';return editing
+        ?`<div class="row" data-id="${i.id}"><button class="del" data-del="${i.id}" aria-label="Delete ${esc(i.n)}">−</button>
+          <input class="nm" data-name="${i.id}" value="${esc(i.n)}" maxlength="50" aria-label="Name">
+          <div class="stepper"><button data-dq="${i.id}" data-d="-1" aria-label="One less ${esc(i.n)}">−</button><span>${i.q}</span><button data-dq="${i.id}" data-d="1" aria-label="One more ${esc(i.n)}">+</button></div></div>`
+        :`<div class="row ${st}" data-id="${i.id}" role="button" tabindex="0" aria-label="${esc(i.n)}, ${i.p} of ${i.q} packed" style="--f:${i.p/i.q*100}%">
+          <div class="n">${esc(i.n)}</div><div class="dot">${i.p}/${i.q}</div></div>`;}).join('')}
+      <div class="addrow"><input data-add="${g}" placeholder="+ Add item" aria-label="Add to ${g}" maxlength="50" enterkeyhint="done"></div></div>`;
+  }).join('');
+  totals();
+}
+function totals(){
+  const need=items.reduce((a,i)=>a+i.q,0), got=items.reduce((a,i)=>a+Math.min(i.p,i.q),0), pct=need?Math.round(got/need*100):0;
+  $('pct').innerHTML=pct===100?'<b>All packed</b> 🌺':`<b>${pct}%</b> packed`;
+  $('bar').firstChild.style.width=pct+'%'; $('bar').classList.toggle('full',pct===100);
+}
+
+/* ---------- tap = pack one more (wraps back to 0) ---------- */
+$('groups').addEventListener('click',e=>{
+  const d=e.target.closest('[data-del]');
+  if(d){const i=items.findIndex(x=>x.id===d.dataset.del);const [gone]=items.splice(i,1);save();render();toast(`Deleted ${esc(gone.n)}.`,()=>{items.splice(i,0,gone);save();render();});return;}
+  const dq=e.target.closest('[data-dq]');
+  if(dq){const it=items.find(x=>x.id===dq.dataset.dq);it.q=Math.max(1,Math.min(99,it.q+ +dq.dataset.d));it.p=Math.min(it.p,it.q);save();render();return;}
+  if(editing)return;
+  const row=e.target.closest('.row'); if(!row)return;
+  const it=items.find(x=>x.id===row.dataset.id); const wasDone=items.every(x=>x.p>=x.q);
+  it.p=it.p>=it.q?0:it.p+1; save(); render();
+  const dot=document.querySelector(`.row[data-id="${it.id}"] .dot`); dot.classList.add('pop');
+  if(!wasDone&&items.every(x=>x.p>=x.q))toast(TRIPC.packedMsg||"Bag's packed.");
+});
+$('groups').addEventListener('keydown',e=>{
+  if(e.target.classList.contains('row')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.target.click();return;}
+  if(e.target.matches('[data-name]')&&e.key==='Enter'){e.target.blur();return;}
+  const inp=e.target.closest('[data-add]'); if(!inp||e.key!=='Enter')return;
+  const m=inp.value.trim().match(/^(.*?)(?:\s*[x×]\s*(\d+))?$/i), n=(m[1]||'').trim(); if(!n)return;
+  items.push({id:'u'+Date.now(),g:inp.dataset.add,n,q:Math.max(1,Math.min(99,+m[2]||1)),p:0}); save(); render();
+  document.querySelector(`[data-add="${inp.dataset.add}"]`).focus();
+});
+$('seg').addEventListener('click',e=>{
+  const b=e.target.closest('[data-who]'); if(!b||b.dataset.who===who)return;
+  who=b.dataset.who; try{localStorage.setItem('app:profile',who);}catch(err){} load(); render();
+});
+$('uncheck').onclick=()=>{
+  const before=items.map(i=>i.p); if(!before.some(Boolean))return;
+  items.forEach(i=>i.p=0); save(); render();
+  toast('Unchecked everything.',()=>{items.forEach((i,k)=>i.p=before[k]);save();render();});
+};
+let editing=false;
+$('edit').onclick=()=>{editing=!editing;document.body.classList.toggle('editing',editing);$('edit').textContent=editing?'Done':'Edit';render();};
+$('groups').addEventListener('change',e=>{ // rename in Edit mode
+  const inp=e.target.closest('[data-name]'); if(!inp)return;
+  const it=items.find(x=>x.id===inp.dataset.name), v=inp.value.trim();
+  if(v){it.n=v;save();}else inp.value=it.n;
+});
+
+/* ---------- + : add sheet with name, how many, group ---------- */
+let sq=1, sg='Essentials';
+const paintSheet=()=>{$('sq').textContent=sq;$('sgroups').innerHTML=GROUPS.map(g=>`<button type="button" data-sg="${g}" class="${g===sg?'on':''}" aria-pressed="${g===sg}">${g}</button>`).join('');};
+$('plus').onclick=()=>{sq=1;$('sname').value='';paintSheet();$('sheet').showModal();$('sname').focus();};
+$('sheet').addEventListener('click',e=>{
+  const q=e.target.closest('[data-sq]'); if(q){sq=Math.max(1,Math.min(99,sq+ +q.dataset.sq));paintSheet();}
+  const g=e.target.closest('[data-sg]'); if(g){sg=g.dataset.sg;paintSheet();}
+});
+$('scancel').onclick=()=>$('sheet').close();
+$('addform').addEventListener('submit',()=>{
+  const n=$('sname').value.trim(); if(!n)return;
+  const it={id:'u'+Date.now(),g:sg,n,q:sq,p:0}; items.push(it); save(); render();
+  const r=document.querySelector(`.row[data-id="${it.id}"]`);
+  if(r){r.scrollIntoView({block:'center',behavior:'smooth'});r.animate([{background:'#dff5df'},{background:'#fff'}],{duration:1600});}
+  toast(`Added ${esc(n)}${sq>1?` ×${sq}`:''} to ${sg}.`);
+});
+
+let tt=0;
+function toast(msg,undo){
+  const t=$('toast'); t.innerHTML=msg+(undo?'<button id="undo">Undo</button>':''); t.classList.add('show');
+  if(undo)$('undo').onclick=()=>{undo();t.classList.remove('show');};
+  clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),3500);
+}
+load(); render();
+
+document.title=`${TRIPC.name||'Trip'} · Suitcase`;
+});
+</script>
+</body>
+</html>

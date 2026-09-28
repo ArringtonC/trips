@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e0c0b">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Trips">
+<script src="config.js"></script>
+<script src="store.js"></script>
+<title>Trips</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e0c0b; --basalt2:#211b18; --line:rgba(246,236,220,.1);
+  --cream:#f3ead9; --text:#f6ecdc; --mute:rgba(246,236,220,.55);
+  --ember:#ff5a2c; --ember2:#ff9a3d; --teal:#34d6c4;
+  --disp:"Big Shoulders Display",Impact,sans-serif; --body:"Geist",ui-sans-serif,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--body);min-height:100dvh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:
+  radial-gradient(50vmax 50vmax at 100% 0%,rgba(255,90,44,.14),transparent 60%),
+  radial-gradient(40vmax 40vmax at 0% 100%,rgba(52,214,196,.06),transparent 60%)}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 24px 60px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--ember2);display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ember);box-shadow:0 0 12px var(--ember)}
+h1{font-family:var(--disp);font-weight:900;font-size:clamp(52px,9vw,88px);line-height:.82;margin:8px 0 28px;text-transform:uppercase}
+.toprow{display:flex;justify-content:space-between;align-items:center}
+#signout{background:none;border:1px solid var(--line);color:var(--mute);border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+
+/* trip card */
+.trip{position:relative;aspect-ratio:16/11;border-radius:26px;overflow:hidden;border:1px solid var(--line);cursor:pointer;text-align:left;padding:0;background:var(--basalt2);
+  transition:transform .45s cubic-bezier(.2,1.2,.4,1),box-shadow .45s;box-shadow:0 30px 60px -30px rgba(0,0,0,.9);animation:rise .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k)*90ms)}
+.trip:hover{transform:translateY(-6px)}
+.trip:focus-visible{outline:2px solid var(--ember2);outline-offset:4px}
+@keyframes rise{from{opacity:0;transform:translateY(30px) scale(.97)}}
+.trip .art{position:absolute;inset:0}
+.trip .art svg{position:absolute;inset:0;width:100%;height:100%}
+.trip .sun{transition:transform .7s cubic-bezier(.2,1.2,.4,1)}
+.trip:hover .sun{transform:translateY(-12px)}
+.trip .shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(10,8,7,.85))}
+.trip .body{position:absolute;left:22px;right:22px;bottom:20px}
+.trip .tag{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ember2)}
+.trip .name{font-family:var(--disp);font-weight:900;font-size:clamp(44px,6vw,64px);line-height:.85;text-transform:uppercase;margin-top:6px}
+.trip .meta{font-size:14px;color:rgba(246,236,220,.8);margin-top:8px}
+.trip .when{position:absolute;top:16px;right:16px;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:20px;background:rgba(14,12,11,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.trip .when.soon{color:var(--ember2)}
+.trip.past{filter:saturate(.55)}
+.trip .del{position:absolute;top:14px;left:14px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(14,12,11,.7);color:#fff;cursor:pointer;opacity:0;transition:.2s}
+.trip:hover .del,.trip .del:focus-visible{opacity:1}
+.trip.zoom{position:fixed;margin:0;z-index:50;animation:none;pointer-events:none}
+
+/* add card */
+.add{aspect-ratio:16/11;border-radius:26px;border:1.5px dashed rgba(246,236,220,.22);background:rgba(246,236,220,.02);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;color:var(--text);transition:.25s;animation:rise .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k)*90ms)}
+.add:hover{border-color:var(--ember);background:rgba(255,90,44,.06)}
+.add .ic{width:56px;height:56px;border-radius:50%;background:var(--ember);color:#1a0d07;display:grid;place-items:center;font-size:30px;box-shadow:0 10px 30px -8px rgba(255,90,44,.7)}
+.add b{font-size:17px}
+.add span{font-size:13px;color:var(--mute)}
+
+/* add-trip sheet (native dialog) */
+dialog{border:1px solid var(--line);border-radius:24px;background:#1b1512;color:var(--text);padding:22px;width:min(440px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+dialog[open]{animation:sheet .45s cubic-bezier(.2,1.2,.4,1)}
+@keyframes sheet{from{opacity:0;transform:translateY(30px) scale(.96)}}
+dialog h2{font-family:var(--disp);font-weight:900;font-size:34px;text-transform:uppercase;margin:0 0 14px}
+dialog label{display:block;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:12px 0 6px}
+dialog input{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:rgba(246,236,220,.04);padding:0 12px;font-size:16px;color-scheme:dark}
+dialog input:focus{outline:2px solid var(--ember2);outline-offset:1px}
+dialog .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+dialog .row{display:flex;gap:8px;margin-top:20px}
+dialog .save{flex:1;height:48px;border-radius:24px;border:0;background:linear-gradient(90deg,var(--ember),var(--ember2));color:#1a0d07;font-weight:700;font-size:15px;cursor:pointer}
+dialog .cancel{height:48px;padding:0 18px;border-radius:24px;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer}
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,100px);background:var(--cream);color:#1a120d;font-size:14px;font-weight:600;padding:12px 18px;border-radius:14px;box-shadow:0 20px 40px -10px rgba(0,0,0,.6);transition:transform .5s cubic-bezier(.2,1.3,.4,1);z-index:60;max-width:calc(100vw - 32px)}
+#toast.show{transform:translate(-50%,0)}
+
+@media (max-width:760px){
+  .wrap{padding:20px 16px 50px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .trip .del{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toprow"><div class="eyebrow" id="people"></div><button id="signout" hidden>Sign out</button></div>
+  <h1>Your trips</h1>
+  <div class="grid" id="grid"></div>
+</div>
+
+<dialog id="sheet">
+  <form id="form" method="dialog">
+    <h2>Add a trip</h2>
+    <label for="tn">Trip name</label><input id="tn" name="name" required maxlength="30" placeholder="e.g. Japan" autocomplete="off">
+    <label for="tp">Where</label><input id="tp" name="place" maxlength="40" placeholder="e.g. Tokyo + Kyoto" autocomplete="off">
+    <div class="two">
+      <div><label for="ts">Leave</label><input id="ts" name="start" type="date" required></div>
+      <div><label for="te">Come home</label><input id="te" name="end" type="date" required></div>
+    </div>
+    <div class="row"><button class="save" value="save">Add trip</button><button class="cancel" type="button" id="cancel">Cancel</button></div>
+  </form>
+</dialog>
+<div id="toast"></div>
+
+<script>
+Store.ready().then(()=>{
+const TRIPC=Store.get('cfg:trip',{});
+[['tripTag','tag'],['tripName','name'],['tripSub','sub'],['tripWm','wm'],['tripShort','short'],['tripLong','longTag']].forEach(([id,f])=>{const e=document.getElementById(id);if(e)e.textContent=TRIPC[f]||'';});
+const BUILT=Store.get('cfg:trips',[],'home'); // trips that are built
+let added=Store.get('trips-added',[],'home');
+const save=()=>Store.set('trips-added',added,'home');
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const day=s=>new Date(s+'T00:00');
+const range=t=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric'}).formatRange(day(t.start),day(t.end))+', '+day(t.end).getFullYear();
+function when(t){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const n=Math.round((day(t.start)-now)/864e5);
+  if(now>day(t.end))return['Past trip',''];
+  if(n<=0)return['Happening now 🌺','soon'];
+  return[n===1?'Tomorrow':`In ${n} days`,n<=30?'soon':''];
+}
+const hue=s=>[...s].reduce((a,c)=>a+c.charCodeAt(0),0)%360;
+function art(t){
+  if(t.art==='beach')return `<svg viewBox="0 0 400 275" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="skyH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1210"/><stop offset=".55" stop-color="#c2461f"/><stop offset="1" stop-color="#ff9a3d"/></linearGradient></defs>
+    <rect width="400" height="275" fill="url(#skyH)"/><circle class="sun" cx="280" cy="150" r="58" fill="#ffd28a"/>
+    <path d="M0 170q50-14 100 0t100 0 100 0 100 0v105H0z" fill="#0f5a5c"/><path d="M0 195q50-12 100 0t100 0 100 0 100 0v80H0z" fill="#0b4447"/><path d="M0 222q50-10 100 0t100 0 100 0 100 0v53H0z" fill="#08302f"/>
+    <path d="M70 175c2-40 6-70 20-96M90 79c-18-2-34 6-44 18M90 79c10-14 28-18 42-12M90 79c-8-12-24-18-38-14M90 79c16 0 30 10 36 22" stroke="#1a0c08" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`;
+  if(t.art==='desert')return `<svg viewBox="0 0 400 275" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="skyC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2415"/><stop offset="1" stop-color="#c9603a"/></linearGradient></defs>
+    <rect width="400" height="275" fill="url(#skyC)"/><circle class="sun" cx="120" cy="120" r="44" fill="#f0c48a"/>
+    <path d="M0 190 90 120l60 50 70-80 90 100 90-40v125H0z" fill="#5a2f1c"/><path d="M0 220q100-30 200 0t200 0v55H0z" fill="#0c333f"/></svg>`;
+  const h=hue(t.name);
+  return `<svg viewBox="0 0 400 275" preserveAspectRatio="xMidYMid slice"><rect width="400" height="275" fill="hsl(${h} 45% 22%)"/><circle class="sun" cx="300" cy="90" r="70" fill="hsl(${(h+40)%360} 80% 62%)" opacity=".85"/><path d="M0 200q100-40 200 0t200 0v75H0z" fill="hsl(${h} 45% 14%)"/></svg>`;
+}
+function render(){
+  const trips=[...BUILT,...added].sort((a,b)=>{const pa=when(a)[0]==='Past trip',pb=when(b)[0]==='Past trip';return pa-pb||day(a.start)-day(b.start);});
+  $('grid').innerHTML=trips.map((t,k)=>{const [w,c]=when(t);return `<div class="trip ${w==='Past trip'?'past':''}" role="button" tabindex="0" data-id="${t.id}" style="--k:${k}" aria-label="Open ${esc(t.name)}">
+      <div class="art">${art(t)}</div><div class="shade"></div><div class="when ${c}">${w}</div>
+      ${t.href?'':`<button class="del" data-del="${t.id}" aria-label="Remove ${esc(t.name)}">×</button>`}
+      <div class="body"><div class="tag">${esc(t.tag||'Trip')}</div><div class="name">${esc(t.name)}</div><div class="meta">${t.place?esc(t.place)+' · ':''}${range(t)}</div></div></div>`;}).join('')
+    +`<button class="add" id="add" style="--k:${trips.length}"><div class="ic">+</div><b>Add a trip</b><span>Name, where, and dates</span></button>`;
+}
+
+/* open a trip: the card grows to fill the screen, then the trip loads */
+function open(el,t){
+  if(!t.href){toast(`${esc(t.name)} is saved. Its pages are not built yet.`);return;}
+  const r=el.getBoundingClientRect(), c=el.cloneNode(true);
+  c.classList.add('zoom'); c.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
+  document.body.appendChild(c);
+  c.querySelectorAll('.body,.when').forEach(n=>n.animate([{opacity:1},{opacity:0}],{duration:200,fill:'forwards'}));
+  c.animate([{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',borderRadius:'26px'},
+    {left:'0px',top:'0px',width:innerWidth+'px',height:innerHeight+'px',borderRadius:'0px'}],{duration:560,easing:'cubic-bezier(.7,0,.2,1)',fill:'forwards'});
+  setTimeout(()=>{location.href=t.href;},matchMedia('(prefers-reduced-motion: reduce)').matches?0:520);
+}
+addEventListener('pageshow',e=>{if(e.persisted)document.querySelectorAll('.trip.zoom').forEach(n=>n.remove());}); // back button
+
+$('grid').addEventListener('click',e=>{
+  const d=e.target.closest('[data-del]');
+  if(d){e.stopPropagation();const t=added.find(x=>x.id===d.dataset.del);if(t&&confirm(`Remove ${t.name}?`)){added=added.filter(x=>x!==t);save();render();}return;}
+  if(e.target.closest('#add')){$('form').reset();$('sheet').showModal();return;}
+  const el=e.target.closest('.trip'); if(!el)return;
+  open(el,[...BUILT,...added].find(t=>t.id===el.dataset.id));
+});
+$('grid').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('trip')){e.preventDefault();e.target.click();}});
+$('cancel').onclick=()=>$('sheet').close();
+$('ts').addEventListener('change',()=>{$('te').min=$('ts').value;if($('te').value<$('ts').value)$('te').value=$('ts').value;});
+$('form').addEventListener('submit',e=>{
+  const f=new FormData(e.target);
+  if(f.get('end')<f.get('start')){e.preventDefault();$('te').setCustomValidity('Come home after you leave');$('te').reportValidity();return;}
+  added.push({id:'t'+Date.now(),name:f.get('name').trim(),place:f.get('place').trim(),start:f.get('start'),end:f.get('end')});
+  save(); render(); toast(`${esc(f.get('name').trim())} added.`);
+});
+$('te').addEventListener('input',()=>$('te').setCustomValidity(''));
+
+let tt=0;
+function toast(html){const t=$('toast');t.innerHTML=html;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3200);}
+render();
+
+document.getElementById('people').textContent=Store.get('cfg:people','','home');
+if(Store.online){const b=document.getElementById('signout');b.hidden=false;b.onclick=()=>Store.signOut();}
+});
+</script>
+</body>
+</html>
