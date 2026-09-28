@@ -1,10 +1,6 @@
 -- Trips app database. Paste into the Supabase SQL editor once. Safe to run again.
--- 1) Who may see and change the trip. Put your two REAL emails here before you run it.
+-- 1) Who may see and change the trip. The emails are added in private/setup.sql (never published).
 create table if not exists public.members (email text primary key);
-insert into public.members (email) values
-  ('arrington@example.com'),
-  ('michaela@example.com')
-on conflict do nothing;
 
 -- 2) All app data: one row per saved thing (outfits, packing list, budget, trip details).
 create table if not exists public.kv (

@@ -23,10 +23,9 @@ Plan for about 20 minutes.
 
 ## Step 2. Set up the tables
 
-1. Open `supabase/schema.sql` in a text editor.
-2. Change the two emails at the top to your real email and your wife's real email.
-3. In Supabase, open **SQL Editor**. Paste all of `schema.sql`. Click **Run**.
-4. Open `private/seed.sql`. Paste all of it in a new SQL Editor tab. Click **Run**. This loads your trip details.
+1. Open `private/setup.sql`. It holds the database setup, who can log in, and your trip details. It never goes to GitHub.
+2. Put your wife's email where it says `MICHAELA_EMAIL_HERE`, and remove the `--` in front of that line.
+3. In Supabase, open **SQL Editor**. Paste all of `setup.sql`. Click **Run**. It is safe to run again.
 
 ## Step 3. Set the web address for log-in emails
 
@@ -56,7 +55,7 @@ Claude makes the repo, uploads the app (not `private/`), and turns on GitHub Pag
 3. Check your email. Tap the link. Then log in.
 4. Your wife does the same on her phone, with her email.
 
-If the app says "This email is not on the trip list", the email is not in `members`. Fix it in Step 2 and run `schema.sql` again.
+If the app says "This email is not on the trip list", the email is not in `members`. Fix it in `private/setup.sql` and run it again.
 
 ## Step 7. Put it on your home screen (iPhone)
 
