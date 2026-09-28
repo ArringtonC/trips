@@ -34,6 +34,10 @@
     const me=`${session.user.email}#${TAB}`, trips=[TRIP,'home'];
     const {data:mem}=await db.from('members').select('email').limit(1);
     if(!mem||!mem.length){await db.auth.signOut();location.replace('login.html?why=member');return new Promise(()=>{});} // logged in, but not on the trip list
+    // each login opens to its own clothes: members.profile says whose profile this email is (the switch still lets you peek at the other one)
+    const {data:who}=await db.from('members').select('email,profile');
+    const own=((who||[]).find(m=>m.email.toLowerCase()===session.user.email.toLowerCase())||{}).profile;
+    if(own&&localStorage.getItem('app:who-email')!==session.user.email){rawSet.call(localStorage,'app:profile',own);rawSet.call(localStorage,'app:who-email',session.user.email);}
     const {data,error}=await db.from('kv').select('trip,key,value').in('trip',trips);
     if(!error)for(const r of data)rawSet.call(localStorage,key(r.key,r.trip),JSON.stringify(r.value));
     // ponytail: offline = keep this device's copy; a save made offline is lost if the other person saves the same key first
