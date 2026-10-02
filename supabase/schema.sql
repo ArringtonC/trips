@@ -43,3 +43,14 @@ create policy "members delete" on public.kv for delete to authenticated using (p
 do $$ begin
   alter publication supabase_realtime add table public.kv;
 exception when duplicate_object then null; end $$;
+
+-- Photo folder for cut-out clothes. Private: only members can see or add files.
+insert into storage.buckets (id,name,public) values ('closet','closet',false) on conflict (id) do nothing;
+drop policy if exists "members read closet"   on storage.objects;
+drop policy if exists "members add closet"    on storage.objects;
+drop policy if exists "members change closet" on storage.objects;
+drop policy if exists "members delete closet" on storage.objects;
+create policy "members read closet"   on storage.objects for select to authenticated using (bucket_id='closet' and public.is_member());
+create policy "members add closet"    on storage.objects for insert to authenticated with check (bucket_id='closet' and public.is_member());
+create policy "members change closet" on storage.objects for update to authenticated using (bucket_id='closet' and public.is_member()) with check (bucket_id='closet' and public.is_member());
+create policy "members delete closet" on storage.objects for delete to authenticated using (bucket_id='closet' and public.is_member());

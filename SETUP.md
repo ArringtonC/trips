@@ -27,6 +27,11 @@ Plan for about 20 minutes.
 2. Put your wife's email where it says `MICHAELA_EMAIL_HERE`, and remove the `--` in front of that line.
 3. In Supabase, open **SQL Editor**. Paste all of `setup.sql`. Click **Run**. It is safe to run again.
 
+## Step 2b. Make the photo folder
+
+Cut-out clothes are stored as photos in Supabase **Storage**, in a private folder called `closet`.
+`private/setup.sql` already creates it. If you ran setup.sql before this folder existed, paste the "Photo folder" part at the bottom of it into the SQL Editor and click **Run**.
+
 ## Step 3. Set the web address for log-in emails
 
 1. In Supabase, open **Authentication → URL Configuration**.

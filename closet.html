@@ -157,7 +157,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const SLOTS=[['top','Top'],['layer','Layer'],['bottom','Bottom'],['shoes','Shoes'],['hat','Hat'],['watch','Watch'],['eyes','Eyes']];
 const label=k=>(SLOTS.find(s=>s[0]===k)||['','Piece'])[1];
 
-/* ---------- STORE (this device only; ponytail: localStorage caps near 5 MB ≈ 40 cut-outs, move to IndexedDB if that bites) ---------- */
+/* ---------- STORE: the list of pieces. Online, each photo lives in the private 'closet' folder in Supabase Storage and the list keeps only its link. ---------- */
 const PROFILES=Store.get('cfg:profiles',[['me','Me']]), OWNER=PROFILES[0][0];
 const who=(()=>{try{const v=localStorage.getItem('app:profile');return PROFILES.some(p=>p[0]===v)?v:OWNER;}catch(e){return OWNER;}})();
 const WHO=(PROFILES.find(p=>p[0]===who)||PROFILES[0])[1];
@@ -193,6 +193,14 @@ function trim(c){ // crop to the piece, 4% padding, max 700px
   o.getContext('2d').drawImage(c,x0,y0,cw,ch,0,0,o.width,o.height); return o;
 }
 const blobOf=(c,type,q)=>new Promise(r=>c.toBlob(r,type,q));
+const dataURL=b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b);});
+async function store(id,blob){ // online: photo → private folder, keep the link. Local mode: keep the photo itself.
+  if(!Store.online)return {src:await dataURL(blob)};
+  const db=await Store.client(), ext=blob.type==='image/webp'?'webp':blob.type==='image/jpeg'?'jpg':'png', path=`${who}/${id}.${ext}`;
+  const {error}=await db.storage.from('closet').upload(path,blob,{contentType:blob.type,upsert:true}); if(error)throw error;
+  const {data,error:e2}=await db.storage.from('closet').createSignedUrl(path,60*60*24*365); if(e2)throw e2; // ponytail: link lasts a year; re-sign if the app outlives that
+  return {src:data.signedUrl,path};
+}
 
 /* ---------- ONE PHOTO: scan → background melts away → garment lifts → name it → save ---------- */
 async function run(file){
@@ -207,42 +215,50 @@ async function run(file){
   $('queue').prepend(el);
   const st=el.querySelector('.status'), bar=el.querySelector('.bar i'), orig=el.querySelector('.orig'), cut=el.querySelector('.cut');
   orig.src=url;
-  let src=null;
+  let outBlob=null, big=null;
   try{
-    const big=canvasOf(await createImageBitmap(file),1600); // big phone photos shrink first: faster, less memory
+    big=canvasOf(await createImageBitmap(file),1600); // big phone photos shrink first: faster, less memory
     let out=big;
     if(hasAlpha(canvasOf(big,200)))st.innerHTML='<b>Already cut out.</b> Nice.';
     else{
       st.innerHTML='Getting the cut-out tool… <b>first time only</b>';
       const {removeBackground}=await loadRB();
+      let finished=false; // the tool can send one last progress tick after it is done; ignore it
       const blob=await removeBackground(await blobOf(big,'image/jpeg',.92),{model:'isnet_quint8',output:{format:'image/png'},
         progress:(k,c,t)=>{
+          if(finished)return;
           if(k.startsWith('fetch')){const p=Math.round(c/t*100);bar.style.width=p+'%';st.innerHTML=`Getting the cut-out tool… <b>${p}%</b> · first time only`;}
           else{bar.style.width='100%';st.textContent='Taking the background off…';}
         }});
-      out=canvasOf(await createImageBitmap(blob),1600);
+      finished=true; out=canvasOf(await createImageBitmap(blob),1600);
     }
     cut.src=out.toDataURL('image/png'); await cut.decode();
     const t=trim(out); if(!t)throw new Error('nothing left after cut-out');
-    src=t.toDataURL('image/webp',.9); // falls back to PNG where WebP can't be written
+    outBlob=await blobOf(t,'image/webp',.9); // iPhones that can't write WebP give PNG; both are fine
     el.classList.add('done'); cut.classList.add('lift'); orig.classList.add('melt');
     st.innerHTML='<b>Background off.</b> Name it and pick where it goes.';
     el.querySelector('input').focus({preventScroll:true});
-  }catch(err){
+  }catch(err){ // safety net: keep the photo as it is, so nothing gets stuck
     console.error(err); el.classList.add('fail');
-    st.innerHTML='<b>Could not cut this one out.</b> Try the piece laid flat on a plain surface, or use the iPhone shortcut.';
-    el.querySelector('.meta').style.display='flex'; el.querySelector('.save').disabled=true;
+    if(big){
+      const plain=canvasOf(big,700); cut.src=plain.toDataURL('image/jpeg',.85); cut.style.opacity=1; outBlob=await blobOf(plain,'image/jpeg',.85);
+      el.classList.add('done'); st.innerHTML='<b>Could not cut out the background.</b> You can save the photo as it is, or try the iPhone shortcut (press and hold the piece in Photos → Share → Save Image).';
+    }else st.innerHTML='<b>Could not read this photo.</b> Try a JPG or PNG.';
   }
   const done=()=>{URL.revokeObjectURL(url);el.animate([{opacity:1},{opacity:0,transform:'scale(.96)'}],{duration:250}).onfinish=()=>el.remove();};
   el.querySelector('[data-x]').onclick=done;
   const peek=el.querySelector('.peek');
   peek.onpointerdown=()=>el.classList.add('peeking');
   peek.onpointerup=peek.onpointerleave=()=>el.classList.remove('peeking');
-  el.querySelector('form').onsubmit=e=>{
-    e.preventDefault(); if(!src)return;
-    const f=new FormData(e.target), it={id:'u'+Date.now(),n:(f.get('n')||'').trim()||'New piece',slot:f.get('slot'),src};
+  el.querySelector('form').onsubmit=async e=>{
+    e.preventDefault(); if(!outBlob)return;
+    const f=new FormData(e.target), id='u'+Date.now(), sv=el.querySelector('.save');
+    sv.disabled=true; st.textContent='Saving…';
+    let it;
+    try{it={id,n:(f.get('n')||'').trim()||'New piece',slot:f.get('slot'),...await store(id,outBlob)};}
+    catch(err){console.error(err);sv.disabled=false;st.innerHTML='<b>Could not save.</b> Check your signal and try again. ('+esc(err.message||err)+')';return;}
     items.unshift(it);
-    if(!save()){items.shift();toast('This device is out of room. Delete an upload first.');return;}
+    if(!save()){items.shift();sv.disabled=false;toast('This device is out of room. Delete an upload first.');return;}
     renderGrid(); flyIn(cut,it.id); done(); toast(`${esc(it.n)} is in your closet.`);
   };
 }
@@ -268,11 +284,12 @@ function renderGrid(){
 $('grid').addEventListener('click',e=>{
   const b=e.target.closest('[data-del]'); if(!b)return;
   const i=items.findIndex(x=>x.id===b.dataset.del); if(i<0)return;
-  undo={it:items[i],i}; items.splice(i,1); save(); renderGrid();
+  const it=items[i]; items.splice(i,1); save(); renderGrid();
+  undo={it,i,timer:setTimeout(()=>{if(it.path&&Store.online)Store.client().then(db=>db.storage.from('closet').remove([it.path]));},4000)}; // the photo file goes 4 s later, unless you undo
 
   toast(`Deleted. <button id="undo" style="background:none;border:0;color:var(--ember);font-weight:700;cursor:pointer">Undo</button>`);
 });
-document.addEventListener('click',e=>{if(e.target.id==='undo'&&undo){items.splice(undo.i,0,undo.it);undo=null;save();renderGrid();toast('Back in your closet.');}});
+document.addEventListener('click',e=>{if(e.target.id==='undo'&&undo){clearTimeout(undo.timer);items.splice(undo.i,0,undo.it);undo=null;save();renderGrid();toast('Back in your closet.');}});
 
 let tt=0;
 function toast(html){const t=$('toast');t.innerHTML=html;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3500);}
