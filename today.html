@@ -60,7 +60,8 @@ button{font:inherit;color:inherit}
 .media:focus-visible{box-shadow:0 0 0 2px var(--ember2)}
 .post.on .media{box-shadow:0 0 0 2px var(--ember)}
 .media .g{position:absolute;left:50%;top:50%;width:74%;aspect-ratio:1;transform:translate(-50%,-50%);--r:-6deg;transition:transform .6s cubic-bezier(.2,1.3,.4,1),--r .6s cubic-bezier(.2,1.3,.4,1),opacity .25s}
-.media .g :is(svg,img){filter:drop-shadow(0 12px 12px rgba(50,30,12,.3))}
+.media .g svg{filter:drop-shadow(0 12px 12px rgba(50,30,12,.3))}
+.media .g img{filter:drop-shadow(0 0 1.5px rgba(60,40,20,.75)) drop-shadow(0 10px 12px rgba(50,30,12,.45))}
 .media:hover .g{transform:translate(-50%,-54%) scale(1.05);--r:0deg}
 .media.lifted .g{opacity:.18;transform:translate(-50%,-50%) scale(.9)}
 .media .badge{position:absolute;left:8px;top:8px;width:24px;height:24px;border-radius:50%;background:var(--ember);color:#1a0d07;display:grid;place-items:center;font-size:13px;font-weight:700;opacity:0;transform:scale(.4);transition:.35s cubic-bezier(.2,1.4,.4,1)}
@@ -108,7 +109,8 @@ button{font:inherit;color:inherit}
 .slot{position:absolute;left:var(--x);top:var(--y);width:var(--w);aspect-ratio:1;transform:translate(-50%,-50%)}
 svg.rot,img.rot{position:absolute;inset:0;width:100%;height:100%;overflow:visible;object-fit:contain;transform:rotate(var(--r,0deg))}
 .piece{position:absolute;inset:0;cursor:pointer}
-.piece :is(svg,img){filter:drop-shadow(0 9px 10px rgba(50,30,12,.32))}
+.piece svg{filter:drop-shadow(0 9px 10px rgba(50,30,12,.32))}
+.piece img{filter:drop-shadow(0 0 1.5px rgba(60,40,20,.75)) drop-shadow(0 10px 12px rgba(50,30,12,.45))}
 .pair{position:absolute;inset:0}
 .pair .s2{transform:translate(-20%,22%) rotate(var(--r,0deg)) scale(.97)}
 .ghost{position:absolute;inset:0;opacity:.55;transition:opacity .3s}

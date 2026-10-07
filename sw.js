@@ -1,6 +1,6 @@
 /* Offline copy of the app. Network first, so you always get the newest version when online. */
-const CACHE='trips-v1';
-const FILES=['./','index.html','outfits.html','today.html','closet.html','budget.html','packing.html','login.html','store.js','config.js','manifest.webmanifest','icons/icon-180.png','icons/icon-192.png','icons/icon-512.png'];
+const CACHE='trips-v2';
+const FILES=['./','index.html','outfits.html','today.html','closet.html','budget.html','packing.html','plan.html','login.html','store.js','config.js','manifest.webmanifest','icons/icon-180.png','icons/icon-192.png','icons/icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
