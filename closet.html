@@ -192,6 +192,15 @@ function trim(c){ // crop to the piece, 4% padding, max 700px
   o.width=Math.round(cw*s);o.height=Math.round(ch*s);
   o.getContext('2d').drawImage(c,x0,y0,cw,ch,0,0,o.width,o.height); return o;
 }
+
+/* Chrome cannot open HEIC (iPhone photos). Convert them in the page first; loaded only when needed. */
+const isHeic=f=>/\.hei[cf]$/i.test(f.name)||/heic|heif/i.test(f.type);
+async function toBitmap(file){
+  if(!isHeic(file)){try{return await createImageBitmap(file);}catch(e){}}
+  if(!window.HeicTo)await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/heic-to@1.2.1/dist/iife/heic-to.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s);});
+  const heicTo=typeof HeicTo==='function'?HeicTo:(HeicTo.heicTo||HeicTo.default); // the library exposes the function under a different name per build
+  return createImageBitmap(await heicTo({blob:file,type:'image/jpeg',quality:.92})); // ~6 s per photo
+}
 const blobOf=(c,type,q)=>new Promise(r=>c.toBlob(r,type,q));
 const dataURL=b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b);});
 async function store(id,blob){ // online: photo → private folder, keep the link. Local mode: keep the photo itself.
@@ -214,10 +223,10 @@ async function run(file){
       <button type="button" class="peek">Hold to see the original</button></form></div>`;
   $('queue').prepend(el);
   const st=el.querySelector('.status'), bar=el.querySelector('.bar i'), orig=el.querySelector('.orig'), cut=el.querySelector('.cut');
-  orig.src=url;
+  orig.src=url; if(isHeic(file))orig.alt='HEIC photo (converting…)';
   let outBlob=null, big=null;
   try{
-    big=canvasOf(await createImageBitmap(file),1600); // big phone photos shrink first: faster, less memory
+    big=canvasOf(await toBitmap(file),1600); // big phone photos shrink first: faster, less memory
     let out=big;
     if(hasAlpha(canvasOf(big,200)))st.innerHTML='<b>Already cut out.</b> Nice.';
     else{
